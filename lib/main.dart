@@ -29,13 +29,13 @@ class _CalculatorPageState extends State<CalculatorPage> {
   // Estado
   double? firstValue;
   double? secondValue;
-
   String display = '0';
   String? operation;
-
+  String expression = '';
   bool justCalculated = false;
   bool hasSecondValue = false;
   bool hasError = false;
+  bool isDark = true;
 
   // Configuração
   final List<String> operations = [
@@ -64,6 +64,12 @@ class _CalculatorPageState extends State<CalculatorPage> {
     "0",
   ];
 
+  void toggleTheme() {
+    setState(() {
+      isDark = !isDark;
+    });
+  }
+
   void addOperation(String operation) {
     setState(() {
       if (hasError) {
@@ -81,6 +87,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
       this.operation = operation;
       display = "0";
       justCalculated = false;
+
+      // Mostra a operação na parte de cima
+      expression = "$firstValue $operation";
     });
   }
 
@@ -140,6 +149,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
       justCalculated = false;
       hasSecondValue = false;
       hasError = false;
+      expression = "";
     });
   }
 
@@ -150,6 +160,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
       }
 
       double value = double.parse(display);
+
       value = value / 100;
 
       display = formatResult(value);
@@ -167,6 +178,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
       }
 
       double value = double.parse(display);
+
       value = value * -1;
 
       display = formatResult(value);
@@ -243,6 +255,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
         return;
       }
 
+      // Guarda a operação que acabou de ser realizada
+      expression = "$firstValue $operation $secondValue";
+
       switch (operation) {
         case "+":
           firstValue = firstValue! + secondValue!;
@@ -268,68 +283,295 @@ class _CalculatorPageState extends State<CalculatorPage> {
       }
 
       display = formatResult(firstValue!);
-
       secondValue = null;
       hasSecondValue = false;
       justCalculated = true;
     });
   }
 
-  Widget numberButton(String number) {
-    return SizedBox(
-      width: 80,
-      height: 60,
-      child: ElevatedButton(
-        onPressed: () {
-          addNumber(number);
-        },
-        child: Text(number),
+  Widget calculatorButton({
+    required String value,
+    required VoidCallback onPressed,
+    bool isOperator = false,
+    bool isSpecial = false,
+  }) {
+    final backgroundColor = isOperator
+        ? const Color(0xFF4858FF)
+        : isSpecial
+        ? (isDark ? const Color(0xFF555966) : const Color(0xFFD2D6DB))
+        : (isDark ? const Color(0xFF292A30) : Colors.white);
+
+    final textColor = isOperator
+        ? Colors.white
+        : (isDark ? Colors.white : Colors.black);
+
+    return Expanded(
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: backgroundColor,
+            foregroundColor: textColor,
+            elevation: 0,
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(17),
+            ),
+          ),
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w400),
+          ),
+        ),
       ),
     );
   }
 
-  Widget operationButton(String operation) {
-    return SizedBox(
-      width: 80,
-      height: 60,
-      child: ElevatedButton(
-        onPressed: () {
-          handleOperation(operation);
-        },
-        child: Text(operation),
+  Widget deleteButton() {
+    return Expanded(
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: ElevatedButton(
+          onPressed: deleteLastDigit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isDark ? const Color(0xFF292A30) : Colors.white,
+            foregroundColor: isDark ? Colors.white : Colors.black,
+            elevation: 0,
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(17),
+            ),
+          ),
+          child: const Icon(Icons.backspace_outlined, size: 22),
+        ),
       ),
+    );
+  }
+
+  Widget calculatorKeyboard() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            calculatorButton(
+              value: "C",
+              onPressed: clearCalculator,
+              isSpecial: true,
+            ),
+            const SizedBox(width: 10),
+            calculatorButton(
+              value: "+/-",
+              onPressed: toggleSign,
+              isSpecial: true,
+            ),
+            const SizedBox(width: 10),
+            calculatorButton(
+              value: "%",
+              onPressed: addPercent,
+              isSpecial: true,
+            ),
+            const SizedBox(width: 10),
+            calculatorButton(
+              value: "÷",
+              onPressed: () => addOperation("÷"),
+              isOperator: true,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        Row(
+          children: [
+            calculatorButton(value: "7", onPressed: () => addNumber("7")),
+            const SizedBox(width: 10),
+            calculatorButton(value: "8", onPressed: () => addNumber("8")),
+            const SizedBox(width: 10),
+            calculatorButton(value: "9", onPressed: () => addNumber("9")),
+            const SizedBox(width: 10),
+            calculatorButton(
+              value: "×",
+              onPressed: () => addOperation("x"),
+              isOperator: true,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        Row(
+          children: [
+            calculatorButton(value: "4", onPressed: () => addNumber("4")),
+            const SizedBox(width: 10),
+            calculatorButton(value: "5", onPressed: () => addNumber("5")),
+            const SizedBox(width: 10),
+            calculatorButton(value: "6", onPressed: () => addNumber("6")),
+            const SizedBox(width: 10),
+            calculatorButton(
+              value: "-",
+              onPressed: () => addOperation("-"),
+              isOperator: true,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        Row(
+          children: [
+            calculatorButton(value: "1", onPressed: () => addNumber("1")),
+            const SizedBox(width: 10),
+            calculatorButton(value: "2", onPressed: () => addNumber("2")),
+            const SizedBox(width: 10),
+            calculatorButton(value: "3", onPressed: () => addNumber("3")),
+            const SizedBox(width: 10),
+            calculatorButton(
+              value: "+",
+              onPressed: () => addOperation("+"),
+              isOperator: true,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        Row(
+          children: [
+            calculatorButton(value: ".", onPressed: addDecimal),
+            const SizedBox(width: 10),
+            calculatorButton(value: "0", onPressed: () => addNumber("0")),
+            const SizedBox(width: 10),
+            deleteButton(),
+            const SizedBox(width: 10),
+            calculatorButton(
+              value: "=",
+              onPressed: calculate,
+              isOperator: true,
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor = isDark
+        ? const Color(0xFF131217)
+        : const Color(0xFFEFF4F5);
+
+    final primaryTextColor = isDark ? Colors.white : Colors.black;
+
+    final secondaryTextColor = isDark
+        ? const Color(0xFF77777F)
+        : const Color(0xFF96969A);
+
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("$firstValue $operation $secondValue"),
-            Text(display),
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              children: [
+                // Botão Dark / Light
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: GestureDetector(
+                    onTap: toggleTheme,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      width: 62,
+                      height: 32,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF292A30) : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: AnimatedAlign(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        alignment: isDark
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          width: 24,
+                          height: 24,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFFD0D4DA),
+                          ),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            transitionBuilder: (child, animation) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              );
+                            },
+                            child: Icon(
+                              isDark
+                                  ? Icons.nightlight_round
+                                  : Icons.wb_sunny_outlined,
+                              key: ValueKey(isDark),
+                              size: 16,
+                              color: isDark
+                                  ? const Color(0xFF4858FF)
+                                  : const Color(0xFF7180FF),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
-            const SizedBox(height: 16),
+                const Spacer(),
 
-            SizedBox(
-              width: 256,
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ...numbers.map((number) {
-                    return numberButton(number);
-                  }).toList(),
+                // Expressão
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    expression,
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: secondaryTextColor,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
 
-                  ...operations.map((operation) {
-                    return operationButton(operation);
-                  }).toList(),
-                ],
-              ),
+                const SizedBox(height: 8),
+
+                // Resultado
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      display,
+                      style: TextStyle(
+                        fontSize: 64,
+                        color: primaryTextColor,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Teclado
+                calculatorKeyboard(),
+
+                const Spacer(),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
