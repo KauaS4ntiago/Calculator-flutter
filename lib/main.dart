@@ -37,77 +37,112 @@ class _CalculatorPageState extends State<CalculatorPage> {
   bool hasError = false;
   bool isDark = true;
 
-  // Configuração
-  final List<String> operations = [
-    "+",
-    "-",
-    "x",
-    "÷",
-    "=",
-    "%",
-    ".",
-    "C",
-    "+/-",
-    "⌫",
-  ];
-
-  final List<String> numbers = [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "0",
-  ];
-
   void toggleTheme() {
     setState(() {
       isDark = !isDark;
     });
   }
 
-  void addOperation(String operation) {
+  // Faz a conta em si, sem chamar setState (quem chama decide o rebuild).
+  void _performCalculation() {
+    if (!hasSecondValue) {
+      return;
+    }
+
+    secondValue = double.parse(display);
+
+    if (firstValue == null || secondValue == null) {
+      return;
+    }
+
+    // Guarda a operação que acabou de ser realizada
+    expression =
+        "${formatResult(firstValue!)} $operation ${formatResult(secondValue!)}";
+
+    switch (operation) {
+      case "+":
+        firstValue = firstValue! + secondValue!;
+        break;
+
+      case "-":
+        firstValue = firstValue! - secondValue!;
+        break;
+
+      case "x":
+        firstValue = firstValue! * secondValue!;
+        break;
+
+      case "÷":
+        if (secondValue == 0) {
+          display = "indefinido";
+          hasError = true;
+          return;
+        }
+
+        firstValue = firstValue! / secondValue!;
+        break;
+    }
+
+    display = formatResult(firstValue!);
+    secondValue = null;
+    hasSecondValue = false;
+    justCalculated = true;
+  }
+
+  void calculate() {
+    setState(() {
+      // Sem operação pendente, "=" não faz nada (evita firstValue!/operation nulos)
+      if (hasError || operation == null) {
+        return;
+      }
+
+      _performCalculation();
+    });
+  }
+
+  void addOperation(String newOperation) {
     setState(() {
       if (hasError) {
         return;
       }
 
-      // Se já existe um segundo valor,
-      // calcula a operação atual antes de trocar.
       if (hasSecondValue) {
-        calculate();
+        // Já tem um segundo valor digitado: calcula a operação pendente antes de trocar.
+        _performCalculation();
+        if (hasError) {
+          return;
+        }
+      } else if (operation == null) {
+        // Primeira operação desta conta: agora sim fixa o primeiro valor.
+        firstValue = double.parse(display);
       }
+      // Se operation != null e !hasSecondValue, o usuário só está trocando
+      // de operador (ex: apertou "+" e mudou de ideia pra "x") — mantém
+      // firstValue como está, sem reler o display (que já virou "0").
 
-      firstValue = double.parse(display);
       hasSecondValue = false;
-      this.operation = operation;
+      operation = newOperation;
       display = "0";
       justCalculated = false;
 
       // Mostra a operação na parte de cima
-      expression = "$firstValue $operation";
+      expression = "${formatResult(firstValue!)} $operation";
     });
   }
 
   void addNumber(String number) {
     setState(() {
-      if (hasError) {
-        return;
-      }
-
+      if (hasError) return;
       if (justCalculated) {
         display = number;
         justCalculated = false;
+        operation = null;
+        firstValue = null;
       } else if (display == '0') {
         display = number;
       } else {
         display = display + number;
       }
-
       if (operation != null) {
         hasSecondValue = true;
       }
@@ -197,6 +232,11 @@ class _CalculatorPageState extends State<CalculatorPage> {
 
       if (display.length > 1) {
         display = display.substring(0, display.length - 1);
+
+        // Evita ficar só com o sinal "-" sem nenhum dígito (crasharia no double.parse)
+        if (display == "-") {
+          display = "0";
+        }
       } else {
         display = "0";
       }
@@ -204,88 +244,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
       if (operation != null && display == "0") {
         hasSecondValue = false;
       }
-    });
-  }
-
-  void handleOperation(String operation) {
-    switch (operation) {
-      case "=":
-        if (this.operation == null) {
-          break;
-        }
-
-        calculate();
-        break;
-
-      case "C":
-        clearCalculator();
-        break;
-
-      case ".":
-        addDecimal();
-        break;
-
-      case "%":
-        addPercent();
-        break;
-
-      case "+/-":
-        toggleSign();
-        break;
-
-      case "⌫":
-        deleteLastDigit();
-        break;
-
-      default:
-        addOperation(operation);
-        break;
-    }
-  }
-
-  void calculate() {
-    setState(() {
-      if (!hasSecondValue) {
-        return;
-      }
-
-      secondValue = double.parse(display);
-
-      if (firstValue == null || secondValue == null) {
-        return;
-      }
-
-      // Guarda a operação que acabou de ser realizada
-      expression = "$firstValue $operation $secondValue";
-
-      switch (operation) {
-        case "+":
-          firstValue = firstValue! + secondValue!;
-          break;
-
-        case "-":
-          firstValue = firstValue! - secondValue!;
-          break;
-
-        case "x":
-          firstValue = firstValue! * secondValue!;
-          break;
-
-        case "÷":
-          if (secondValue == 0) {
-            display = "indefinido";
-            hasError = true;
-            return;
-          }
-
-          firstValue = firstValue! / secondValue!;
-          break;
-      }
-
-      display = formatResult(firstValue!);
-      secondValue = null;
-      hasSecondValue = false;
-      justCalculated = true;
     });
   }
 
